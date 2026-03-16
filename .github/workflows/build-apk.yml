@@ -1,0 +1,100 @@
+name: Build AList Pro APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag (e.g. v1.0.1), leave empty to skip release'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Clean Gradle cache
+        run: |
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
+
+      - name: Get Flutter dependencies
+        run: |
+          cd android && ./gradlew clean && cd ..
+          flutter pub get
+
+      - name: Build APK (Release)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Rename APKs
+        run: |
+          mkdir -p artifacts
+          # arm64 (most modern devices)
+          if [ -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk artifacts/alist-pro-arm64-v${{ github.run_number }}.apk
+          fi
+          # armeabi-v7a (older 32-bit devices)
+          if [ -f build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk artifacts/alist-pro-armv7-v${{ github.run_number }}.apk
+          fi
+          # Universal fallback
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk artifacts/alist-pro-universal-v${{ github.run_number }}.apk
+          fi
+          echo "=== Built APKs ==="
+          ls -lh artifacts/
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: alist-pro-apk-${{ github.run_number }}
+          path: artifacts/
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: ${{ github.event.inputs.release_tag != '' || startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: AList Pro ${{ github.event.inputs.release_tag || github.ref_name }}
+          body: |
+            ## AList Pro - Advanced AList Client
+
+            A modern, feature-rich AList client for Android built with Flutter.
+
+            ### Features
+            - Material 3 design with purple-blue gradient theme
+            - Immersive music player with full-screen album art
+            - Beautiful file browser with colorful type icons
+            - Photo viewer, video player, document reader
+            - Dark/Light mode following system settings
+
+            ### Download
+            - **arm64-v8a**: For modern 64-bit Android devices (recommended)
+            - **armeabi-v7a**: For older 32-bit Android devices
+          files: artifacts/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
