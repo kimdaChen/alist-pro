@@ -1,0 +1,27 @@
+From d01a8d61aff405650865bf13923475570b14d4ef Mon Sep 17 00:00:00 2001
+From: Auto Build <autobuild@xlist.dev>
+Date: Wed, 11 Mar 2026 08:42:24 +0800
+Subject: [PATCH] 'fix-nodejs-warning'
+
+---
+ .github/workflows/apk.yml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/.github/workflows/apk.yml b/.github/workflows/apk.yml
+index 3ca4865..462e964 100644
+--- a/.github/workflows/apk.yml
++++ b/.github/workflows/apk.yml
+@@ -10,6 +10,10 @@ jobs:
+   build:
+     runs-on: ubuntu-latest
+ 
++    env:
++      # Force Node.js 24 to avoid deprecation warnings
++      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
++
+     steps:
+       - uses: actions/checkout@v4
+ 
+-- 
+2.53.0.windows.1
+
