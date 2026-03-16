@@ -1,0 +1,17 @@
+# Git ignore file
+*.ps1
+*.bat
+*.sh
+*.md
+*.json
+*.log
+*.zip
+packages/
+.git/
+build/
+.dart_tool/
+ios/Pods/
+android/.gradle/
+android/local.properties
+android/.gradle/
+**/generated_plugin_registrant.dart
